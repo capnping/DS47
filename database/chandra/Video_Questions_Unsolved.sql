@@ -147,7 +147,7 @@ limit 3;
 
 -- -----------------------------------------------------------------------------------------------------------------
 -- String and date-time functions
-
+select reverse(substring('Sachin Tendulkar', -7, 3));
 -- 1. Print the customer names in proper case.
 
 -- 2. Print the product names in the following format: Category_Subcategory.
@@ -155,11 +155,20 @@ select Product_Category, Product_Sub_Category,
 concat(Product_Category, '_', Product_Sub_Category) as product_name
 from prod_dimen;
 -- 3. In which month were the most orders shipped?
-
+select count(Ship_id) as ship_qty, month(ship_date) shipping_month
+from shipping_dimen
+group by shipping_month
+order by ship_qty DESC
+limit 3;
 -- 4. Which month and year combination saw the most number of critical orders?
 
 -- 5. Find the most commonly used mode of shipment in 2011.
-
+select count(Ship_id) as ship_qty, month(ship_date) shipping_month
+from shipping_dimen
+where year(ship_date) = 2011
+group by shipping_month
+order by ship_qty DESC
+limit 3;
 
 -- -----------------------------------------------------------------------------------------------------------------
 -- Regular Expressions
@@ -167,29 +176,57 @@ from prod_dimen;
 -- 1. Find the names of all customers having the substring 'car'.
 
 -- 2. Print customer names starting with A, B, C or D and ending with 'er'.
+select customer_name
+from cust_dimen
+where customer_name like '[abcd]%er';
 
+select customer_name
+from cust_dimen
+where customer_name regexp '^[abcd].*er$';
 
 -- -----------------------------------------------------------------------------------------------------------------
 -- Nested Queries
 
--- 1. Print the order number of the most valuable order by sales.
+-- 1. Print the order number of the most valuable order by sales. Most valuable sales means most sold product.
+select Ord_id,Sales, round(Sales) as rounded_sales
+from market_fact_full
+where Sales = (select max(sales) from market_fact_full);
+-- 2. Return the product categories and subcategories of all the products which don’t have details about the product base margin.product base margin is null
+select * from prod_dimen
+where prod_id in (select prod_id from market_fact_full 
+					where Product_Base_Margin is null
+				);
 
--- 2. Return the product categories and subcategories of all the products which don’t have details about the product
--- base margin.
-
--- 3. Print the name of the most frequent customer.
-
+select prod_id from market_fact_full 
+					where Product_Base_Margin is null;
+-- 3. Print the name of the most frequent customer. most buying customer, data present in market table
+select Customer_Name from cust_dimen
+where cust_dimen.cust_id = (select cust_id from market_fact_full group by(cust_id) order by count(cust_id) desc limit 1);
+select count(cust_id), cust_id from market_fact_full group by(cust_id) order by count(cust_id) desc;
 -- 4. Print the three most common products.
 
 
 -- -----------------------------------------------------------------------------------------------------------------
 -- CTEs
 
--- 1. Find the 5 products which resulted in the least losses. Which product had the highest product base
--- margin among these?
-
+-- 1. Find the 5 products which resulted in the least losses. Which product had the highest product base margin among these?
+WITH least_losses as (
+		select prod_id, profit, Product_base_margin
+        from market_fact_full
+        where profit < 0
+        order by profit desc
+        limit 5
+        ) select * from least_losses
+        where Product_Base_Margin = (select max(product_base_margin) from least_losses);
 -- 2. Find all low-priority orders made in the month of April. Out of them, how many were made in the first half of
 -- the month?
+WITH low_priority_order as (
+		select month(Order_Date) as order_month, day(Order_Date) as Order_day, Order_Date
+        from orders_dimen
+        where Order_Priority = 'low' and month(Order_Date) = 4
+        ) select * from low_priority_order
+        where order_day between 1 and 16;
+        
 
 
 -- -----------------------------------------------------------------------------------------------------------------
@@ -197,6 +234,11 @@ from prod_dimen;
 
 -- 1. Create a view to display the sales amounts, the number of orders, profits made and the shipping costs of all
 -- orders. Query it to return all orders which have a profit of greater than 1000.
+Create View Order_Info As
+Select Ord_ID, Sales, Order_quantity, Profit, Shipping_cost
+from market_fact_full;
+
+select * from order_info;
 
 -- 2. Which year generated the highest profit?
 
@@ -206,12 +248,24 @@ from prod_dimen;
 -- Inner Join
 
 -- 1. Print the product categories and subcategories along with the profits made for each order.
+select p.Product_Category, p.Product_Sub_Category, m.Ord_id, m.profit
+from prod_dimen p
+inner join market_fact_full m
+on p.prod_id = m.prod_id;
+
 
 -- 2. Find the shipment date, mode and profit made for every single order.
 
 -- 3. Print the shipment mode, profit made and product category for each product.
 
 -- 4. Which customer ordered the most number of products?
+select m.Cust_id, Customer_Name, count(prod_id) as total_prod, sum(Order_Quantity) as total_order
+from market_fact_full m
+inner join cust_dimen c
+on m.cust_id = c.cust_id
+group by m.cust_id
+order by total_prod DESC
+limit 5;
 
 -- 5. Selling office supplies was more profitable in Delhi as compared to Patna. True or false?
 
@@ -245,9 +299,10 @@ set Manu_Id = 2
 where Product_Category = 'technology';
 
 -- 2. Display the products sold by all the manufacturers using both inner and outer joins.
-
+select distinct manu_id from prod_dimen;
 -- 3. Display the number of products sold by each manufacturer.
-
+select m.manu_name, p.prod_id
+from manu m LEFT JOIN prod_dimen p on m.manu_id = p.manu_id;
 -- 4. Create a view to display the customer names, segments, sales, product categories and
 -- subcategories of all orders. Use it to print the names and segments of those customers who ordered more than 20
 -- pens and art supplies products.

@@ -1,8 +1,8 @@
--- Creating the schema
-create schema market_star_schema;
 
 -- https://github.com/XD-DENG/SQL-exercise
 
+-- Creating the schema
+create schema market_star_schema;
 
 -- Using the schema
 use market_star_schema;
