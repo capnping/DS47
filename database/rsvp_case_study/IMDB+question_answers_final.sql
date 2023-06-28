@@ -107,9 +107,9 @@ SELECT
 FROM
 	movie
 GROUP BY
-	MONTH(date_published)
+	month_num
 ORDER BY
-	MONTH(date_published) ASC;
+	number_of_movies DESC;
 
 /* ANS: The highest number of movies is produced in the month of March : 824
 The least number of movies is produced in the month of December : 438 */
@@ -163,6 +163,7 @@ group by  g.genre
 order by number_of_movies DESC
 LIMIT 1;
 
+
 -- OUTPUT: Drama with 4285 movies had the highest number of movies produced overall
 
 /* So, based on the insight that you just drew, RSVP Movies should focus on the ‘Drama’ genre. 
@@ -187,6 +188,7 @@ SELECT
 	COUNT(movie_id) AS total_movies_with_one_genre
 FROM 
 	ct_movies_of_one_genre;
+
 
 -- OUTPUT: There are 3289 movies belong to only one genre.
 
